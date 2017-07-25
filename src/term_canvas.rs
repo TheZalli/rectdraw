@@ -10,24 +10,24 @@ use coord::{Coord, Size};
 /// 
 /// To read and edit values use the `Index` and `IndexMut` traits.
 /// To display on terminal use the `Display` trait.
-pub struct GridLayer {
+pub struct TermCanvas {
     pos: Coord<u32>,
     size: Size<u32>,
     grid_array: Box<[char]>,
     str_repr: Cell<Option<String>>,
 }
 
-impl GridLayer {
-    /// Creates a new empty GridLayer.
+impl TermCanvas {
+    /// Creates a new empty TermCanvas.
     /// 
-    /// The GridLayer is filled with the given size of space character (0x20).
+    /// The TermCanvas is filled with the given size of space character (0x20).
     pub fn new(pos: Coord<u32>, size: Size<u32>) -> Self {
         // capacity of grid array
         let cap = size.area() as usize;
         // the grid array
         let array = vec![' '; cap].into_boxed_slice();
 
-        GridLayer {
+        TermCanvas {
             pos: pos,
             size: size,
             grid_array: array,
@@ -109,9 +109,9 @@ impl GridLayer {
     }
 }
 
-impl Clone for GridLayer {
+impl Clone for TermCanvas {
     fn clone(&self) -> Self {
-        GridLayer {
+        TermCanvas {
             pos: self.pos,
             size: self.size,
             grid_array: self.grid_array.clone(),
@@ -120,7 +120,7 @@ impl Clone for GridLayer {
     }
 }
 
-impl ops::Index<Coord<u32>> for GridLayer {
+impl ops::Index<Coord<u32>> for TermCanvas {
     type Output = char;
     fn index(&self, index: Coord<u32>) -> &char {
         &self.grid_array[
@@ -129,7 +129,7 @@ impl ops::Index<Coord<u32>> for GridLayer {
     }
 }
 
-impl ops::IndexMut<Coord<u32>> for GridLayer {
+impl ops::IndexMut<Coord<u32>> for TermCanvas {
     fn index_mut(&mut self, index: Coord<u32>) -> &mut char {
         self.clear_str_repr();
         &mut self.grid_array[
@@ -138,18 +138,18 @@ impl ops::IndexMut<Coord<u32>> for GridLayer {
     }
 }
 
-impl fmt::Debug for GridLayer {
+impl fmt::Debug for TermCanvas {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         unsafe {
             write!(f,
-                "GridLayer {{ pos: {:?}, size: {:?},
+                "TermCanvas {{ pos: {:?}, size: {:?},
                 grid_array: {:?}, str_repr: {:?} }}",
                 self.pos, self.size, self.grid_array, *self.str_repr.as_ptr())
         }
     }
 }
 
-impl fmt::Display for GridLayer {
+impl fmt::Display for TermCanvas {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         // TODO maybe handle out of window bounds cases
         write!(f, "{}", self.get_str_repr())

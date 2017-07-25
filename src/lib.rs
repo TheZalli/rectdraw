@@ -1,28 +1,14 @@
 extern crate termion;
 
 pub mod rectangle;
-pub mod grid_layer;
+pub mod term_canvas;
 mod coord;
 
 use std::io;
 use std::iter;
 
 pub use coord::{Coord, Size};
-use grid_layer::GridLayer;
-
-#[derive(Debug)]
-pub struct GridCanvas {
-    layers: Vec<GridLayer>,
-}
-
-impl GridCanvas {
-    pub fn new() -> GridCanvas {
-        GridCanvas {
-            layers: Vec::new(),
-        }
-    }
-
-}
+use term_canvas::TermCanvas;
 
 pub enum RectPart {
     Center,
