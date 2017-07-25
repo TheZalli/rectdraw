@@ -6,11 +6,15 @@ use termion;
 
 use coord::{Coord, Size};
 
+/// A rectangular matrix of unicode characters.
+/// 
+/// To read and edit values use the `Index` and `IndexMut` traits.
+/// To display on terminal use the `Display` trait.
 pub struct GridLayer {
     pos: Coord<u32>,
     size: Size<u32>,
     grid_array: Box<[char]>,
-    str_repr: Cell<Option<Box<str>>>,
+    str_repr: Cell<Option<String>>,
 }
 
 impl GridLayer {
@@ -31,15 +35,24 @@ impl GridLayer {
         }
     }
 
+    pub fn pos(&self) -> Coord<u32> {
+        self.pos
+    }
+
+    pub fn set_pos(&mut self, new_pos: Coord<u32>) {
+        self.clear_str_repr();
+        self.pos = new_pos;
+    }
+
+    pub fn size(&self) -> Size<u32> {
+        self.size
+    }
+
     /// Returns `true` if has a displayable string representation.
     #[inline]
     fn has_str_repr(&self) -> bool {
         unsafe {
-            if let None = *self.str_repr.as_ptr() {
-                return false;
-            } else {
-                return true;
-            }
+            (*self.str_repr.as_ptr()).is_some()
         }
     }
 
@@ -48,34 +61,49 @@ impl GridLayer {
         // a shortcut for jumping into the next line
         let jump_next_line = format!("{}{}",
             termion::cursor::Down(1), termion::cursor::Left(
-                (self.size.width + 2) as u16
+                (self.size.width - 1) as u16
         ));
 
-        // the string to be outputted, start with a command to position the 
-        // terminal cursor to the upper-left corner
-        let out_str = format!("{}", termion::cursor::Goto(
-            (self.pos.x - 1) as u16,
-            (self.pos.y - 1) as u16
+        // the output, start with a command to position the terminal cursor to 
+        // the upper-left corner
+        let mut out_str = format!("{}",
+            termion::cursor::Goto(
+                (self.pos.x + 1) as u16,
+                (self.pos.y + 1) as u16
         ));
 
-        // TODO
+        for y in 0..self.size.height {
+            for x in 0..self.size.width {
+                // get the proper linear index
+                let idx = Coord::new(x, y)
+                    .encode_linear_index(self.size.width as usize);
+                // get the pointed character and push it
+                out_str.push(self.grid_array[idx]);
+            }
+            // finished a row
+            out_str.push_str(&jump_next_line);
+        }
+
+        // store the result
+        self.str_repr.set(Some(out_str));
     }
 
-    fn get_str_repr<'a>(&'a self) -> &'a str {
+    fn get_str_repr<'a>(&'a self) -> &'a String {
         // generate string presentation if needed
         if !self.has_str_repr() {
             self.gen_str_repr();
         }
-        unimplemented!()
-        /*unsafe {
-            self.str_repr.as_ptr().clone().as_ref().unwrap()
-        }.unwrap().as_ref()*/
+        // now when the repr exists return a reference to it
+        unsafe {
+            &*self.str_repr.as_ptr()
+        }.as_ref().unwrap()
     }
 
 
     /// Clears the string representation.
     /// 
     /// Remember to always call when the string representation might become invalid.
+    #[inline]
     fn clear_str_repr(&mut self) {
         self.str_repr.set(None);
     }
@@ -123,6 +151,7 @@ impl fmt::Debug for GridLayer {
 
 impl fmt::Display for GridLayer {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        // TODO maybe handle out of window bounds cases
         write!(f, "{}", self.get_str_repr())
     }
 }
